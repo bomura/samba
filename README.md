@@ -33,8 +33,9 @@ OR set local storage:
         -i "<path>" Import smbpassword
                     required arg: "<path>" - full file path in container
         -n          Start the 'nmbd' daemon to advertise the shares
+        -o "<opt1>[;opt2;opt3;...;optN]" Add global options
         -p          Set ownership and permissions on the shares
-        -s "<name;/path>[;browsable;readonly;guest;users;admins]" Configure a share
+        -s "<name;/path>[;browsable;readonly;guest;users;admins;others]" Configure a share
                     required arg: "<name>;<comment>;</path>"
                     <name> is how it's called for clients
                     <path> path to share
@@ -44,6 +45,7 @@ OR set local storage:
                     [guest] allowed default:'yes' or 'no'
                     [users] allowed default:'all' or list of allowed users
                     [admins] allowed default:'none' or list of admin users
+                    [others] other options
         -t ""       Configure timezone
                     possible arg: "[timezone]" - zoneinfo timezone for container
         -u "<username;password>"       Add a user
@@ -93,7 +95,8 @@ Will get you the same settings as
                 -s "public;/share" \
                 -s "users;/srv;no;no;no;example1,example2" \
                 -s "example1 private;/example1;no;no;no;example1" \
-                -s "example2 private;/example2;no;no;no;example2"
+                -s "example2 private;/example2;no;no;no;example2;writable = yes;vfs objects = recycle"
+                -o "wide links = yes;unix extensions = no"	
 
 # User Feedback
 

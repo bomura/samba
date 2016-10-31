@@ -50,9 +50,10 @@ perms() { local i file=/etc/samba/smb.conf
 #   guest) 'yes' or 'no'
 #   users) list of allowed users
 #   admins) list of admin users
+#   others) other options
 # Return: result
-share() { local share="$1" path="$2" browsable=${3:-yes} ro=${4:-yes} \
-                guest=${5:-yes} users=${6:-""} admins=${7:-""} \
+share() { local share="${1//___/ }" path="$2" browsable=${3:-yes} ro=${4:-yes} \
+                guest=${5:-yes} users=${6:-""} admins=${7:-""} others=${@:8:($#-2)} \
                 file=/etc/samba/smb.conf
     sed -i "/\\[$share\\]/,/^\$/d" $file
     echo "[$share]" >>$file
@@ -64,7 +65,20 @@ share() { local share="$1" path="$2" browsable=${3:-yes} ro=${4:-yes} \
         echo "   valid users = $(tr ',' ' ' <<< $users)" >>$file
     [[ ${admins:-""} && ! ${admins:-""} =~ none ]] &&
         echo "   admin users = $(tr ',' ' ' <<< $admins)" >>$file
+    for i in $others; do
+        echo "   ${i//___/ }" >>$file
+    done
     echo -e "" >>$file
+}
+
+### misc: Add share options
+# Arguments:
+#   options) options
+# Return: result
+misc() { local options="${@}" file=/etc/samba/smb.conf
+    for i in $options; do
+        sed -i -e "/^############ Misc ############$/a \ \ \ ${i//___/ }" $file
+    done
 }
 
 ### timezone: Set the timezone for the container
@@ -114,6 +128,7 @@ Options (fields in '[]' are optional, '<>' are required):
     -i \"<path>\" Import smbpassword
                 required arg: \"<path>\" - full file path in container
     -n          Start the 'nmbd' daemon to advertise the shares
+    -o \"<opt1>[;opt2;opt3;...;optN]\" Add global options
     -p          Set ownership and permissions on the shares
     -s \"<name;/path>[;browsable;readonly;guest;users;admins]\" Configure a share
                 required arg: \"<name>;<comment>;</path>\"
@@ -125,6 +140,7 @@ Options (fields in '[]' are optional, '<>' are required):
                 [guest] allowed default:'yes' or 'no'
                 [users] allowed default:'all' or list of allowed users
                 [admins] allowed default:'none' or list of admin users
+                [others] other options
     -t \"\"       Configure timezone
                 possible arg: \"[timezone]\" - zoneinfo timezone for container
     -u \"<username;password>\"       Add a user
@@ -141,13 +157,14 @@ The 'command' (if provided and valid) will be run instead of samba
     exit $RC
 }
 
-while getopts ":hi:nps:t:u:w:" opt; do
+while getopts ":hi:no:ps:t:u:w:" opt; do
     case "$opt" in
         h) usage ;;
         i) import "$OPTARG" ;;
         n) NMBD="true" ;;
+        o) eval misc $(sed 's/^\|$/"/g; s/ /___/g; s/;/" "/g' <<< $OPTARG) ;;
         p) PERMISSIONS="true" ;;
-        s) eval share $(sed 's/^\|$/"/g; s/;/" "/g' <<< $OPTARG) ;;
+        s) eval share $(sed 's/\$/\\$/g; s/^\|$/"/g; s/ /___/g; s/;/" "/g' <<< $OPTARG) ;;
         t) timezone "$OPTARG" ;;
         u) eval user $(sed 's|;| |g' <<< $OPTARG) ;;
         w) workgroup "$OPTARG" ;;
